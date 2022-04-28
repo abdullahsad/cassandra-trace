@@ -1,0 +1,27 @@
+{
+  "name": "mycassandratutorial",
+  "version": "1.0.0",
+  "description": "test cassandara ",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "saad",
+  "license": "MIT",
+  "dependencies": {
+    "body-parser": "^1.20.0",
+    "collect.js": "^4.32.0",
+    "cors": "^2.8.5",
+    "dayjs": "^1.11.1",
+    "express": "^4.17.3",
+    "express-cassandra": "^2.8.0",
+    "geojson-length": "^0.1.1",
+    "pusher": "^5.0.1",
+    "uuid": "^8.3.2"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.15"
+  }
+}
