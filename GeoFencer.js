@@ -59,7 +59,6 @@ function getStDistance(latitude1, longitude1, latitude2, longitude2) {
 
 }
 
-
 function deg2rad(degrees)
 {
   var pi = Math.PI;
