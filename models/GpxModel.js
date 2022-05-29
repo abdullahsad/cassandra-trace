@@ -18,7 +18,7 @@ module.exports = {
         company_id: "int",
         service: "text"
     },
-    key:["user_id","gpx_time"]
+    key:["user_id","gpx_time","service","company_id",'id'],
 }
 
 

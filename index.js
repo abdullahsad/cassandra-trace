@@ -32,7 +32,7 @@ models.setDirectory( __dirname + '/models').bind(
             contactPoints: ['127.0.0.1'],
             localDataCenter: 'datacenter1',
             protocolOptions: { port: 9042 },
-            keyspace: 'test_3',
+            keyspace: 'test_5',
             queryOptions: {consistency: models.consistencies.one}
         },
         ormOptions: {
@@ -128,11 +128,13 @@ app.get('/test', function(req, res) {
     //         console.log(res);
     // });
 
-    
+    models.instance.Gpx.execute_query(query, {}, function(err, Gpxs){
+        resolve(Gpxs);
+    });
       
-      pusher.trigger("private-my-channel", "my-event", {
-        message: "hello world",
-      });
+    //   pusher.trigger("private-my-channel", "my-event", {
+    //     message: "hello world",
+    //   });
       res.send('gpx added!');
 
 });
@@ -229,7 +231,8 @@ app.post('/add-gpx', function(req, res) {
             return;
         }
         console.log('gpx saved!');
-        res.send('gpx added!');
+
+        res.send(gpx);   
     });
 
 
@@ -247,48 +250,55 @@ app.post("/calculate-trip-additions", async (req, res) => {
     const start_date = req.body.start_date;
     const end_date = req.body.end_date;
     const user_id = req.body.user_id;
-    // const company_id = req.body.company_id;
-    // const service = req.body.service;
+    const company_id = req.body.company_id;
+    const service = req.body.service;
 
-    var query = "SELECT user_id,latitude,longitude,gpx_time,speed,created_at FROM gpx where user_id = "+user_id+" and gpx_time >= '"+start_date+"' and gpx_time <= '"+end_date+"' and accuracy <= 300 ORDER BY gpx_time ASC ALLOW FILTERING;";
+    var query = "SELECT user_id,latitude,longitude,gpx_time,speed,created_at FROM gpx where user_id = "+user_id+" and gpx_time >= '"+start_date+"' and gpx_time <= '"+end_date+"' and company_id ="+company_id+" and service='"+service+"' and accuracy <= 300 ORDER BY gpx_time ASC ALLOW FILTERING;";
     var query2 = "SELECT user_id,latitude,longitude,gpx_time,speed,created_at FROM gpx where user_id = "+user_id+" and where gpx_time >= '"+start_date+"' and where gpx_time <= '"+end_date+"' ORDER BY gpx_time ASC ALLOW FILTERING;";
-    
+    // models.instance.Gpx.execute_query(query, {}, function(err, Gpxs){
+    //     resolve(Gpxs);
+    // });
+    // res.send(query);
+    // models.instance.Gpx.execute_query(query, {}, function(err, Conversations){
+    //         res.send(JSON.stringify(Conversations));
+    //         res.send(err);
+    // });
     let xx = await getFromDB(query);
 
+    res.send(xx);
 
+    // let formated_start_date = new Date(start_date);
+    // let formated_end_date = new Date(end_date);
+    // let results = xx.rows.filter(element => {
+    //     console.log(element.user_id );
+    //     return (element.user_id == user_id && element.gpx_time >= formated_start_date && element.gpx_time <= formated_end_date);
+    // });
+    // results = array_values(results);
+    // // res.send(results);
+    // let sanitized_points = [];
+    // if (results.length > 0) {
+    //     setGpx(results);
+    //     sanitized_points = sanitize();
+    // }
+    // line_string_container = {
+    //     "type" : "LineString",
+    //     "coordinates" : [],
+    // };
 
-    let formated_start_date = new Date(start_date);
-    let formated_end_date = new Date(end_date);
-    let results = xx.rows.filter(element => {
-        // console.log(element.user_id );
-        return (element.user_id == user_id && element.gpx_time >= formated_start_date && element.gpx_time <= formated_end_date);
-    });
-    results = array_values(results);
+    // let total_sanitized_points = sanitized_points.length;
+    // if (total_sanitized_points == 1){
+    //     line_string_container.coordinates = [
+    //         [sanitized_points[0].longitude,sanitized_points[0].latitude],
+    //         [sanitized_points[0].longitude,sanitized_points[0].latitude],
+    //     ];
+    // }else{
+    //     for (let index = 0; index < sanitized_points.length; index++) {
+    //         line_string_container.coordinates.push([sanitized_points[index].longitude,sanitized_points[index].latitude]);
+    //     }
+    // }
+    // let distance = geojsonLength(line_string_container);
 
-    let sanitized_points = [];
-    if (results.length > 0) {
-        setGpx(results);
-        sanitized_points = sanitize();
-    }
-    line_string_container = {
-        "type" : "LineString",
-        "coordinates" : [],
-    };
-
-    let total_sanitized_points = sanitized_points.length;
-    if (total_sanitized_points == 1){
-        line_string_container.coordinates = [
-            [sanitized_points[0].longitude,sanitized_points[0].latitude],
-            [sanitized_points[0].longitude,sanitized_points[0].latitude],
-        ];
-    }else{
-        for (let index = 0; index < sanitized_points.length; index++) {
-            line_string_container.coordinates.push([sanitized_points[index].longitude,sanitized_points[index].latitude]);
-        }
-    }
-    let distance = geojsonLength(line_string_container);
-
-    res.send(JSON.stringify({line_string_geo_json:line_string_container,distance:distance}));
+    // res.send(JSON.stringify({line_string_geo_json:line_string_container,distance:distance}));
 
 });
 
