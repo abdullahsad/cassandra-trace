@@ -3,10 +3,15 @@ const Pusher = require("pusher");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 var dayjs = require('dayjs')
+var multer = require('multer');
+var forms = multer();
 var app = express();
 app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+// app.use(express.json());
+// app.use(express.urlencoded({ extended: true }));
+app.use(bodyParser.json());
+app.use(forms.array()); 
+app.use(bodyParser.urlencoded({ extended: true }));
 var models = require('express-cassandra');
 var createError = require('http-errors');
 //import dayjs from 'dayjs' // ES 2015
@@ -205,24 +210,25 @@ app.post('/gpx-bulk-insert', function(req, res) {
 });
 
 app.post('/add-gpx', function(req, res) {
+
     const { user_id, longitude, latitude , speed , bearing , altitude , gpx_time , is_offline_data , accuracy , company_id , service } = req.body;
 
     // if (!(user_id && longitude && latitude && speed && bearing && altitude && gpx_time && is_offline_data && accuracy && company_id && service)) {
     //     res.status(400).send("All input is required");
     // }
     var gpx = new models.instance.Gpx({
-        user_id: user_id,
-        longitude: longitude,
-        latitude: latitude,
-        speed: speed,
-        bearing: bearing,
+        user_id: parseInt(user_id),
+        longitude:parseFloat( longitude),
+        latitude:parseFloat( latitude),
+        speed:parseFloat( speed),
+        bearing:parseFloat( bearing),
         created_at: Date.now(),
         updated_at: Date.now(),
-        altitude: altitude,
+        altitude: parseFloat(altitude),
         gpx_time: gpx_time,
-        is_offline_data: is_offline_data,
-        accuracy: accuracy,
-        company_id: company_id,
+        is_offline_data: 0,
+        accuracy: parseFloat(accuracy),
+        company_id:parseInt (company_id),
         service: service
     });
     gpx.save(function(err){
