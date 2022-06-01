@@ -20,6 +20,7 @@
     "geojson-length": "^0.1.1",
     "multer": "^1.4.4-lts.1",
     "pusher": "^5.0.1",
+    "tile38": "^0.9.1",
     "uuid": "^8.3.2"
   },
   "devDependencies": {

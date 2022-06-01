@@ -5,6 +5,7 @@ const cors = require("cors");
 var dayjs = require('dayjs')
 var multer = require('multer');
 var forms = multer();
+const Tile38 = require('tile38');
 var app = express();
 app.use(cors());
 // app.use(express.json());
@@ -71,6 +72,12 @@ app.get('/person/:name/:surname/:age', function(req, res) {
 });
 
 app.get('/test', function(req, res) {
+    // const client = new Tile38();
+    // client.set('fleet', 'truck2', [33.5211, -112.2710]).then(() => {
+    //     console.log("done");
+    // }).catch(err => {
+    //     console.error(err);
+    // });
     // var query = "SELECT * FROM gpx where user_id = 2869 ALLOW FILTERING;";
     // var q = "INSERT INTO person (name,surname,age,created) VALUES ('t1','test',18,'2022-04-13T06:44:17.010Z'),('t2','test',18,'2022-04-13T06:44:17.010Z'),('t3','test',18,'2022-04-13T06:44:17.010Z') ALLOW FILTERING;";
     // models.instance.Person.execute_query(q, {}, function(err, Conversations){
@@ -133,13 +140,13 @@ app.get('/test', function(req, res) {
     //         console.log(res);
     // });
 
-    models.instance.Gpx.execute_query(query, {}, function(err, Gpxs){
-        resolve(Gpxs);
-    });
+    // models.instance.Gpx.execute_query(query, {}, function(err, Gpxs){
+    //     resolve(Gpxs);
+    // });
       
-    //   pusher.trigger("private-my-channel", "my-event", {
-    //     message: "hello world",
-    //   });
+      pusher.trigger("user-gpx", "gpx-service-company-user-user-id", {
+        message: "hello world",
+      });
       res.send('gpx added!');
 
 });
@@ -236,7 +243,15 @@ app.post('/add-gpx', function(req, res) {
             console.log(err);
             return;
         }
-        console.log('gpx saved!');
+        const client = new Tile38();
+        client.set(service+'_company_'+company_id+'_gpx', service+'_company_'+company_id+'_user_'+user_id, [latitude, longitude]).then(() => {
+            console.log("done");
+        }).catch(err => {
+            console.error(err);
+        });
+        pusher.trigger("user-gpx", "gpx-"+gpx.service+"-company-"+gpx.company_id, {
+            message: gpx,
+        });
 
         res.send(gpx);   
     });
