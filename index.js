@@ -144,9 +144,9 @@ app.get('/test', function(req, res) {
     //     resolve(Gpxs);
     // });
       
-      pusher.trigger("user-gpx", "gpx-service-company-user-user-id", {
-        message: "hello world",
-      });
+    //   pusher.trigger("user-gpx", "gpx-service-company-user-user-id", {
+    //     message: "hello world",
+    //   });
       res.send('gpx added!');
 
 });
