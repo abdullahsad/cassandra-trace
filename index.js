@@ -23,9 +23,9 @@ var geojsonLength = require('geojson-length');
 
 const {setGpx, sanitize} =  require('./GpxSanitizer');
 const pusher = new Pusher({
-    appId: "1006",
-    key: "a1975a97bf741bbb1006",
-    secret: "7cfe0b6f0c4adbcd1006",
+    appId: "1004",
+    key: "a1975a97bf741bbb1004",
+    secret: "7cfe0b6f0c4adbcd1004",
     cluster: "ap1",
     host: "socket.bmapsbd.com",
     port: 8005,
@@ -249,7 +249,6 @@ app.post('/add-gpx', function(req, res) {
     gpx.save(function(err){
         if(err) {
             console.log(err);
-            return;
         }
         const client = new Tile38();
         client.set(service+'_company_'+company_id+'_gpx', service+'_company_'+company_id+'_user_'+user_id, [latitude, longitude]).then(() => {
@@ -257,6 +256,7 @@ app.post('/add-gpx', function(req, res) {
         }).catch(err => {
             console.error(err);
         });
+
         pusher.trigger("user-gpx", "gpx-"+gpx.service+"-company-"+gpx.company_id, {
             message: gpx,
         });
