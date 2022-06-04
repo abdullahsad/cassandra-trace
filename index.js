@@ -282,6 +282,33 @@ app.post('/get-user-last-gpx', function(req, res) {
 
 });
 
+app.post('/get-user-status', function(req, res) {
+
+    const { user_id } = req.body;
+
+    if (!(user_id)) {
+        res.status(400).send("All input is required");
+    }else{
+        var query = "SELECT user_id,latitude,longitude,gpx_time,speed,created_at FROM gpx where user_id = "+user_id+" and company_id =1 and service='TMS' ORDER BY gpx_time DESC LIMIT 1 ALLOW FILTERING;";
+        models.instance.Gpx.execute_query(query, {}, function(err, data){
+            if(data.rowLength == 0){
+                res.send({'status':'OFFLINE'});
+            }
+            else{
+                var currentdate = new Date(); 
+                var ms = Math.abs(currentdate - data.rows[0].gpx_time);
+                var diff = ms / 1000;
+                if(diff > 300){
+                    res.send({'status':'OFFLINE'});
+                }else{
+                    res.send({'status':'ONLINE'});
+                }
+            }
+        });
+    }
+
+});
+
 app.post('/get-users-last-gpx-with-status', function(req, res) {
 
     const { users_id, company_id, service } = req.body;
