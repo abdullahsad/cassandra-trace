@@ -225,7 +225,7 @@ app.post('/gpx-bulk-insert', function(req, res) {
 });
 
 app.post('/add-gpx', function(req, res) {
-
+   
     const { user_id, longitude, latitude , speed , bearing , altitude , gpx_time , is_offline_data , accuracy , company_id , service } = req.body;
 
     // if (!(user_id && longitude && latitude && speed && bearing && altitude && gpx_time && is_offline_data && accuracy && company_id && service)) {
@@ -240,7 +240,7 @@ app.post('/add-gpx', function(req, res) {
         created_at: Date.now(),
         updated_at: Date.now(),
         altitude: parseFloat(altitude),
-        gpx_time: gpx_time,
+        gpx_time: new Date(gpx_time),
         is_offline_data: 0,
         accuracy: parseFloat(accuracy),
         company_id:parseInt (company_id),
