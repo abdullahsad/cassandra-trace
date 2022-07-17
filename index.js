@@ -7,6 +7,7 @@ var dayjs = require('dayjs')
 var multer = require('multer');
 var forms = multer();
 const Tile38 = require('tile38');
+const { Server } = require("socket.io");
 var app = express();
 app.use(cors());
 // app.use(express.json());
@@ -20,6 +21,7 @@ var createError = require('http-errors');
 var geojsonLength = require('geojson-length');
 
 
+const io = new Server(3005);
 
 const {setGpx, sanitize} =  require('./GpxSanitizer');
 const pusher = new Pusher({
@@ -449,4 +451,40 @@ app.use(function (err, req, res, next) {
     console.error(err.message);
     if (!err.statusCode) err.statusCode = 500;
         res.status(err.statusCode).send(err.message);
+});
+
+
+
+io.on("connection", (socket) => {
+    // send a message to the client
+    socket.emit("hello from server", 1, "2", { 3: Buffer.from([4]) });
+  
+    // receive a message from the client
+    socket.on("hello from client", (...args) => {
+      console.log(args);
+    });
+    socket.on("add-gpx", (...args) => {
+        const { user_id, longitude, latitude , speed , bearing , altitude , gpx_time , is_offline_data , accuracy , company_id , service } = args[0];
+        // console.log(user_id, longitude, latitude , speed , bearing , altitude , gpx_time , is_offline_data , accuracy , company_id , service);
+        var gpx = new models.instance.Gpx({
+            user_id: parseInt(user_id),
+            longitude:parseFloat( longitude),
+            latitude:parseFloat( latitude),
+            speed:parseFloat( speed),
+            bearing:parseFloat( bearing),
+            created_at: Date.now(),
+            updated_at: Date.now(),
+            altitude: parseFloat(altitude),
+            gpx_time: new Date(gpx_time),
+            is_offline_data: 0,
+            accuracy: parseFloat(accuracy),
+            company_id:parseInt (company_id),
+            service: service
+        });
+        gpx.save(function(err){
+            if(err) {
+                console.log(err);
+            }
+        });
+    });
 });
