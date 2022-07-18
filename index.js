@@ -21,7 +21,7 @@ var createError = require('http-errors');
 var geojsonLength = require('geojson-length');
 
 
-const io = new Server(3005);
+
 
 const {setGpx, sanitize} =  require('./GpxSanitizer');
 const pusher = new Pusher({
@@ -453,7 +453,7 @@ app.use(function (err, req, res, next) {
         res.status(err.statusCode).send(err.message);
 });
 
-
+const io = new Server(server);
 
 io.on("connection", (socket) => {
     // send a message to the client
