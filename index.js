@@ -10,8 +10,6 @@ const Tile38 = require('tile38');
 const { Server } = require("socket.io");
 var app = express();
 app.use(cors());
-// app.use(express.json());
-// app.use(express.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(forms.array()); 
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -19,9 +17,6 @@ var models = require('express-cassandra');
 var createError = require('http-errors');
 //import dayjs from 'dayjs' // ES 2015
 var geojsonLength = require('geojson-length');
-
-
-
 
 const {setGpx, sanitize} =  require('./GpxSanitizer');
 const pusher = new Pusher({
@@ -57,22 +52,7 @@ models.setDirectory( __dirname + '/models').bind(
     }
 );
 
-app.get('/person/:name/:surname/:age', function(req, res) {
-    res.send('name: ' + req.params.name+', surname:'+req.params.surname+', age:'+req.params.age);
-    var person = new models.instance.Person({
-        name: req.params.name,
-        surname: req.params.surname,
-        age: parseInt(req.params.age),
-        created: Date.now()
-    });
-    person.save(function(err){
-        if(err) {
-            console.log(err);
-            return;
-        }
-        console.log('person saved!');
-    });
-});
+
 
 app.get('/test', function(req, res) {
     // const client = new Tile38();
@@ -162,15 +142,8 @@ app.get('/test', function(req, res) {
 });
 
 app.post('/gpx-bulk-insert', function(req, res) {
-    // var query = "SELECT * FROM gpx where user_id = 2869 ALLOW FILTERING;";
-    // var q = "INSERT INTO person (name,surname,age,created) VALUES ('t1','test',18,'2022-04-13T06:44:17.010Z'),('t2','test',18,'2022-04-13T06:44:17.010Z'),('t3','test',18,'2022-04-13T06:44:17.010Z') ALLOW FILTERING;";
-    // models.instance.Person.execute_query(q, {}, function(err, Conversations){
-    //     // res.send(JSON.stringify(Conversations));
-    //     res.send(err);
-    // });
     var queries = [];
     var data = JSON.parse(req.body.gpx_bulk);
-    // res.send(data);
     for (let i = 0; i < data.length; i++) {
         var tmp_gpx = new models.instance.Gpx({
             user_id:parseInt(data[i].user_id),
@@ -194,35 +167,6 @@ app.post('/gpx-bulk-insert', function(req, res) {
         if(err) throw err;
     });
     res.send('offline gpx added!');
-    // var queries = [];
-
-    // var event = new models.instance.Person({
-    //     name : "t2",
-    //     surname : "text",
-    //     age	 : 18,
-    //     created : "2022-04-13T06:44:17.010Z"
-    // });
-    // var save_query = event.save({return_query: true});
-    // queries.push(save_query);
-
-    // var update_query = models.instance.Person.update(
-    //     {name: 'saad2'},
-    //     {surname: 'hello1 updated'},
-    //     {return_query: true}
-    // );
-    // queries.push(update_query);
-
-    // var delete_query = models.instance.Person.delete(
-    //     {name: 't1'},
-    //     {return_query: true}
-    // );
-    // queries.push(delete_query);
-
-    // models.doBatch(queries, function(err,res){
-    //     if(err) throw err;
-    //     else
-    //         console.log(res);
-    // });
 
 });
 
@@ -345,6 +289,42 @@ app.post('/get-users-last-gpx-with-status', function(req, res) {
                 }
             }
             res.send(all_user_Data);
+        });
+    }
+
+});
+
+app.post('/get-company-user-last-gpx', function(req, res) {
+
+    const { company_id, service } = req.body;
+
+    if (!(company_id && service)) {
+        res.status(400).send("All input is required");
+    }else{
+        var q1 = "SELECT DISTINCT user_id FROM gpx;"
+        models.instance.Gpx.execute_query(q1, {}, function(err, data){
+            var users_array = data.rows;
+            // res.send(users_array);
+            var result = users_array.map(function(a) {return a.user_id;});
+            var all_user_Data = [];
+            var query = "SELECT user_id,latitude,longitude,gpx_time,speed,created_at FROM gpx where user_id IN ("+result+") and company_id ="+company_id+" and service='"+service+"' GROUP BY user_id ORDER BY gpx_time DESC ALLOW FILTERING;";
+            models.instance.Gpx.execute_query(query, {}, function(err, data){
+                for(var i=0;i<result.length;i++){
+                    var result2 = data.rows.filter(row => row.user_id == result[i]);
+                    if(result2.length > 0){
+                        all_user_Data.push(
+                            {
+                                user_id: result2[0].user_id,
+                                latitude: result2[0].latitude,
+                                longitude: result2[0].longitude,
+                                gpx_time: result2[0].gpx_time,
+                                speed: result2[0].speed,
+                            }
+                        );
+                    }
+                }
+                res.send(all_user_Data);
+            });
         });
     }
 
