@@ -157,8 +157,8 @@ app.post('/gpx-bulk-insert', function(req, res) {
             gpx_time:data[i].gpx_time,
             is_offline_data:1,
             accuracy:data[i].accuracy ? parseFloat(data[i].accuracy) : 0.0,
-            company_id:1,
-            service:'RETAIL_TRACE'
+            company_id:parseInt (data[i].company_id),
+            service:data[i].service
         });
         var save_query = tmp_gpx.save({return_query: true});
         queries.push(save_query);
