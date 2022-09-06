@@ -5,11 +5,21 @@ const bodyParser = require("body-parser");
 const cors = require("cors");
 var dayjs = require('dayjs')
 var multer = require('multer');
+var morgan = require('morgan');
+var fs = require('fs');
+var logFile = 'output.log';
 var forms = multer();
 const Tile38 = require('tile38');
 const { Server } = require("socket.io");
 var app = express();
 app.use(cors());
+app.use(
+    morgan('combined', {
+      stream: logFile
+        ? fs.createWriteStream(logFile, { flags: 'a' })
+        : process.stdout,
+    }),
+);
 app.use(bodyParser.json());
 app.use(forms.array()); 
 app.use(bodyParser.urlencoded({ extended: true }));
