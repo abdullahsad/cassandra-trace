@@ -1,6 +1,7 @@
 var express = require('express');
 const Pusher = require("pusher");
 var jwt = require('jsonwebtoken');
+var axios = require('axios').default;
 const bodyParser = require("body-parser");
 const cors = require("cors");
 var dayjs = require('dayjs')
@@ -340,6 +341,78 @@ app.post('/get-company-user-last-gpx', function(req, res) {
 
 });
 
+app.post('/get-hr-trace-user-statistics', function(req, res) {
+
+    const { user_id,checkin_time,api_key,name } = req.body;
+
+    if (!(user_id && checkin_time && api_key && name)) {
+        res.status(400).send("All input is required");
+    }else{
+        var q1 = "SELECT latitude,longitude,gpx_time FROM gpx WHERE service = 'HR_TRACE' and user_id = "+user_id+" and gpx_time >= '"+checkin_time+"' ORDER BY gpx_time ASC ALLOW FILTERING;"
+        var ret_data = [];
+        models.instance.Gpx.execute_query(q1, {}, async function(err, data){
+            var users_array = data.rows;
+            if (users_array.length > 0) {
+                var today = new Date(users_array[0].gpx_time);
+                var first_data = users_array[0];
+            }else{
+                return res.send([]);
+            }
+            for (let index = 0; index < 24; index++) {
+                today.setHours(today.getHours() + 1);
+                //get first data from users_array where gpx_time is less than today
+                var result = users_array.filter(row => row.gpx_time <= today);
+                var last_data = result[result.length - 1];
+                var address  = '';
+                // address = Promise.all([getRevGeoAddress(last_data.latitude,last_data.longitude)])
+                //     .then(function (results) {
+                //         return results;
+                //     });
+                address = await getRevGeoAddress(last_data.latitude,last_data.longitude);
+                var att_address =  address.place.address;
+                if ((typeof(address.place.address) === 'undefined') && (address.place.address === null)) {
+                    att_address = address.place.area + " ," + address.place.city;
+                }
+                var distance = getDistanceFromLatLonInKm(first_data.latitude,first_data.longitude,last_data.latitude,last_data.longitude);
+                ret_data.push({
+                    Date:dayjs(today).format('DD/MM/YYYY'),
+                    Name: name,
+                    Time: dayjs(today).format('hh:mm A'),
+                    Address: att_address,
+                    Distance: distance + " km",
+                    "Location Service" : (last_data.is_offline_data == 1) ? "Off" : "On",
+                });
+                first_data = last_data;
+                if (today > users_array[users_array.length - 1].gpx_time) {
+                    break;
+                }
+            }
+            res.send(ret_data);
+        });
+    }
+
+});
+
+function getDistanceFromLatLonInKm(lat1,lon1,lat2,lon2) {
+    var R = 6371; // Radius of the earth in km
+    var dLat = deg2rad(lat2-lat1);  // deg2rad below
+    var dLon = deg2rad(lon2-lon1);
+    var a =
+        Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
+        Math.sin(dLon/2) * Math.sin(dLon/2)
+        ;
+    var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    var d = R * c; // Distance in km
+    return (Math.round(d * 100) / 100).toFixed(2);
+}
+
+function deg2rad(deg) {
+    return deg * (Math.PI/180)
+}
+
+
+
 
 app.post("/pusher/auth", (req, res) => {
     const socketId = req.body.socket_id;
@@ -425,6 +498,20 @@ function getFromDB(query) {
     });
 }
 
+function getRevGeoAddress(lat,lon){
+    return new Promise(function (resolve) {
+        var response = axios.get('https://barikoi.xyz/v1/api/search/reverse/MjA1NDo4MjBSTUxLTEs5/geocode?longitude='+lon+'&latitude='+lat+'&address=true')
+        // console.log(response.get)
+        // get response data
+        .then(response => {
+            resolve(response.data);
+        })
+        // catch and print errors if any
+        .catch(error => {
+            console.log(error);
+        });
+    });
+}
 
 
 
