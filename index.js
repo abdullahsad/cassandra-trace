@@ -395,9 +395,11 @@ async function populateStatisticsRowForHrTrace(checkin_time,gpx_data,name) {
     var first_data = gpx_data[0];
     for (let index = 0; index < 24; index++) {
         var this_hour_data = gpx_data.filter(row => row.gpx_time <= today);
+        if (this_hour_data.length == 0) {
+            today.setHours(today.getHours() + 1);
+            continue;
+        }
         var last_data = this_hour_data[this_hour_data.length - 1];
-        console.log(last_data)
-        console.log(this_hour_data.length)
         var address  = '';
         address = await getRevGeoAddress(last_data.latitude,last_data.longitude);
         if ((typeof(address.place.address) === 'undefined') && (address.place.address === null)) {
