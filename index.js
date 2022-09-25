@@ -343,55 +343,84 @@ app.post('/get-company-user-last-gpx', function(req, res) {
 
 app.post('/get-hr-trace-user-statistics', function(req, res) {
 
-    const { user_id,checkin_time,api_key,name } = req.body;
+    const { user_id,api_key,name,start_date,end_date } = req.body;
 
-    if (!(user_id && checkin_time && api_key && name)) {
+    if (!(user_id && start_date && end_date && api_key && name)) {
         res.status(400).send("All input is required");
     }else{
-        var q1 = "SELECT latitude,longitude,gpx_time FROM gpx WHERE service = 'HR_TRACE' and user_id = "+user_id+" and gpx_time >= '"+checkin_time+"' ORDER BY gpx_time ASC ALLOW FILTERING;"
+        
+        var q1 = "SELECT latitude,longitude,gpx_time FROM gpx WHERE service = 'HR_TRACE' and user_id = "+user_id+" and gpx_time >= '"+start_date+" 00:00:00' and gpx_time <= '"+end_date+" 23:59:59' ORDER BY gpx_time ASC ALLOW FILTERING;"
         var ret_data = [];
         models.instance.Gpx.execute_query(q1, {}, async function(err, data){
-            var users_array = data.rows;
-            if (users_array.length > 0) {
-                var today = new Date(users_array[0].gpx_time);
-                var first_data = users_array[0];
+            var gpx_data = data.rows;
+            var attendance_data = []; 
+            if (gpx_data.length > 0) {
+                attendance_data = await getHrTraceAttendanceData(user_id, start_date, end_date);
+                attendance_data = attendance_data.attendence;
             }else{
                 return res.send([]);
             }
-            for (let index = 0; index < 24; index++) {
-                today.setHours(today.getHours() + 1);
-                //get first data from users_array where gpx_time is less than today
-                var result = users_array.filter(row => row.gpx_time <= today);
-                var last_data = result[result.length - 1];
-                var address  = '';
-                // address = Promise.all([getRevGeoAddress(last_data.latitude,last_data.longitude)])
-                //     .then(function (results) {
-                //         return results;
-                //     });
-                address = await getRevGeoAddress(last_data.latitude,last_data.longitude);
-                var att_address =  address.place.address;
-                if ((typeof(address.place.address) === 'undefined') && (address.place.address === null)) {
-                    att_address = address.place.area + " ," + address.place.city;
+            for (let index = 0; index < attendance_data.length; index++) {
+                var this_day_checkin_time = '';
+                var this_day_checkout_time = '';
+                if (!(typeof(attendance_data[index].enter_time) === 'undefined') && !(attendance_data[index].enter_time === null)) {
+                    this_day_checkin_time = attendance_data[index].enter_time;
+                }else{
+                    continue;
                 }
-                var distance = getDistanceFromLatLonInKm(first_data.latitude,first_data.longitude,last_data.latitude,last_data.longitude);
-                ret_data.push({
-                    Date:dayjs(today).format('DD/MM/YYYY'),
-                    Name: name,
-                    Time: dayjs(today).format('hh:mm A'),
-                    Address: att_address,
-                    Distance: distance + " km",
-                    "Location Service" : (last_data.is_offline_data == 1) ? "Off" : "On",
-                });
-                first_data = last_data;
-                if (today > users_array[users_array.length - 1].gpx_time) {
-                    break;
+                if (!(typeof(attendance_data[index].exit_time) === 'undefined') && !(attendance_data[index].exit_time === null)) {
+                    this_day_checkout_time = attendance_data[index].exit_time;
+                }else{
+                    this_day_checkout_time = new Date(attendance_data[index].enter_time);
+                    this_day_checkout_time.setHours(23);
                 }
+
+                var this_day_data = gpx_data.filter(row => Date.parse(row.gpx_time) >= Date.parse(this_day_checkin_time) && Date.parse(row.gpx_time) <= Date.parse(this_day_checkout_time));
+                if (this_day_data.length > 0) {
+                    ret_data = ret_data.concat(await populateStatisticsRowForHrTrace(this_day_checkin_time,this_day_data,name)); 
+                }  
             }
+            
             res.send(ret_data);
         });
     }
 
 });
+
+
+async function populateStatisticsRowForHrTrace(checkin_time,gpx_data,name) {
+    var ret_data = [];
+    var today = new Date(checkin_time);
+    today.setHours(today.getHours() + 1);
+    var first_data = gpx_data[0];
+    for (let index = 0; index < 24; index++) {
+        var this_hour_data = gpx_data.filter(row => row.gpx_time <= today);
+        var last_data = this_hour_data[this_hour_data.length - 1];
+        var address  = '';
+        address = await getRevGeoAddress(last_data.latitude,last_data.longitude);
+        if ((typeof(address.place.address) === 'undefined') && (address.place.address === null)) {
+            var att_address = address.place.area + " ," + address.place.city + " ," + address.place.sub_district + " ," + address.place.district;
+        }else{
+            var att_address = address.place.address + " ," + address.place.sub_district + " ," + address.place.district;
+        }
+        var distance = getDistanceFromLatLonInKm(first_data.latitude,first_data.longitude,last_data.latitude,last_data.longitude);
+        ret_data.push({
+            Date:dayjs(today).format('DD/MM/YYYY'),
+            Nane:name,
+            Time: dayjs(today).format('hh:mm A'),
+            Address: att_address,
+            Distance: distance + " km",
+            "Location Service" : (last_data.is_offline_data == 1) ? "Off" : "On",
+        });
+        first_data = last_data;
+        today.setHours(today.getHours() + 1);
+        if (today > gpx_data[gpx_data.length - 1].gpx_time) {
+            break;
+        }
+    }
+    return ret_data;
+}
+
 
 function getDistanceFromLatLonInKm(lat1,lon1,lat2,lon2) {
     var R = 6371; // Radius of the earth in km
@@ -500,13 +529,25 @@ function getFromDB(query) {
 
 function getRevGeoAddress(lat,lon){
     return new Promise(function (resolve) {
-        var response = axios.get('https://barikoi.xyz/v1/api/search/reverse/MjA1NDo4MjBSTUxLTEs5/geocode?longitude='+lon+'&latitude='+lat+'&address=true')
+        var response = axios.get('https://barikoi.xyz/v1/api/search/reverse/MjA1NDo4MjBSTUxLTEs5/geocode?longitude='+lon+'&latitude='+lat+'&address=true&district=true&sub_district=true')
         // console.log(response.get)
         // get response data
         .then(response => {
             resolve(response.data);
         })
         // catch and print errors if any
+        .catch(error => {
+            console.log(error);
+        });
+    });
+}
+
+function getHrTraceAttendanceData(user_id,start_date,end_date){
+    return new Promise(function (resolve) {
+        var response = axios.get('https://hr.bmapsbd.com/api/get-attendance-for-trace?user_id='+user_id+'&start_date='+start_date+'&end_date='+end_date)
+        .then(response => {
+            resolve(response.data);
+        })
         .catch(error => {
             console.log(error);
         });
