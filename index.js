@@ -377,7 +377,7 @@ app.post('/get-hr-trace-user-statistics', function(req, res) {
 
                 var this_day_data = gpx_data.filter(row => Date.parse(row.gpx_time) >= Date.parse(this_day_checkin_time) && Date.parse(row.gpx_time) <= Date.parse(this_day_checkout_time));
                 if (this_day_data.length > 0) {
-                    ret_data = ret_data.concat(await populateStatisticsRowForHrTrace(this_day_checkin_time,this_day_data,name)); 
+                    ret_data = ret_data.concat(await populateStatisticsRowForHrTrace(this_day_checkin_time,this_day_data,name,attendance_data[index])); 
                 }  
             }
             
@@ -388,9 +388,17 @@ app.post('/get-hr-trace-user-statistics', function(req, res) {
 });
 
 
-async function populateStatisticsRowForHrTrace(checkin_time,gpx_data,name) {
+async function populateStatisticsRowForHrTrace(checkin_time,gpx_data,name,attendance_data) {
     var ret_data = [];
     var today = new Date(checkin_time);
+    ret_data.push({
+        Date:dayjs(today).format('DD/MM/YYYY'),
+        Nane:name,
+        Time: dayjs(today).format('hh:mm A'),
+        Address: attendance_data.checkin_address,
+        Distance: "0 km",
+        "Location Service" : "On",
+    });
     today.setHours(today.getHours() + 1);
     var first_data = gpx_data[0];
     for (let index = 0; index < 24; index++) {
