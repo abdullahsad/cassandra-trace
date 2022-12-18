@@ -341,48 +341,46 @@ app.post('/get-company-user-last-gpx', function(req, res) {
 
 });
 
-app.post('/get-hr-trace-user-statistics', function(req, res) {
+app.post('/get-hr-trace-user-statistics', async (req, res) => {
 
     const { user_id,api_key,name,start_date,end_date } = req.body;
 
     if (!(user_id && start_date && end_date && api_key && name)) {
         res.status(400).send("All input is required");
     }else{
-        
         var q1 = "SELECT latitude,longitude,gpx_time FROM gpx WHERE service = 'HR_TRACE' and user_id = "+user_id+" and gpx_time >= '"+start_date+" 00:00:00' and gpx_time <= '"+end_date+" 23:59:59' ORDER BY gpx_time ASC ALLOW FILTERING;"
         var ret_data = [];
-        models.instance.Gpx.execute_query(q1, {}, async function(err, data){
-            var gpx_data = data.rows;
-            var attendance_data = []; 
-            if (gpx_data.length > 0) {
-                attendance_data = await getHrTraceAttendanceData(user_id, start_date, end_date);
-                attendance_data = attendance_data.attendence;
+        let xx = await getFromDB(q1);
+        var gpx_data = xx.rows;
+        var attendance_data = [];
+        if (gpx_data.length > 0) {
+            attendance_data = await getHrTraceAttendanceData(user_id, start_date, end_date);
+            attendance_data = attendance_data.attendence;
+        }else{
+            return res.send(attendance_data);
+        }
+        for (let index = 0; index < attendance_data.length; index++) {
+            var this_day_checkin_time = '';
+            var this_day_checkout_time = '';
+            if (!(typeof(attendance_data[index].enter_time) === 'undefined') && !(attendance_data[index].enter_time === null)) {
+                this_day_checkin_time = attendance_data[index].enter_time;
             }else{
-                return res.send([]);
+                continue;
             }
-            for (let index = 0; index < attendance_data.length; index++) {
-                var this_day_checkin_time = '';
-                var this_day_checkout_time = '';
-                if (!(typeof(attendance_data[index].enter_time) === 'undefined') && !(attendance_data[index].enter_time === null)) {
-                    this_day_checkin_time = attendance_data[index].enter_time;
-                }else{
-                    continue;
-                }
-                if (!(typeof(attendance_data[index].exit_time) === 'undefined') && !(attendance_data[index].exit_time === null)) {
-                    this_day_checkout_time = attendance_data[index].exit_time;
-                }else{
-                    this_day_checkout_time = new Date(attendance_data[index].enter_time);
-                    this_day_checkout_time.setHours(23);
-                }
+            if (!(typeof(attendance_data[index].exit_time) === 'undefined') && !(attendance_data[index].exit_time === null)) {
+                this_day_checkout_time = attendance_data[index].exit_time;
+            }else{
+                this_day_checkout_time = new Date(attendance_data[index].enter_time);
+                this_day_checkout_time.setHours(23);
+            }
 
-                var this_day_data = gpx_data.filter(row => Date.parse(row.gpx_time) >= Date.parse(this_day_checkin_time) && Date.parse(row.gpx_time) <= Date.parse(this_day_checkout_time));
-                if (this_day_data.length > 0) {
-                    ret_data = ret_data.concat(await populateStatisticsRowForHrTrace(this_day_checkin_time,this_day_data,name,attendance_data[index])); 
-                }  
+            var this_day_data = gpx_data.filter(row => Date.parse(row.gpx_time) >= Date.parse(this_day_checkin_time) && Date.parse(row.gpx_time) <= Date.parse(this_day_checkout_time));
+            if (this_day_data.length > 0) {
+                ret_data = ret_data.concat(await populateStatisticsRowForHrTrace(this_day_checkin_time,this_day_data,name,attendance_data[index],api_key));
             }
-            
-            res.send(ret_data);
-        });
+        }
+
+        res.send(ret_data);
     }
 
 });
@@ -525,6 +523,66 @@ app.post("/calculate-trip-additions", async (req, res) => {
     res.send({line_string_geo_json:line_string_container,distance:distance});
 
 });
+
+// app.post("/get-stall-points", async (req, res) => {
+//     const start_date = req.body.start_date;
+//     const end_date = req.body.end_date;
+//     const user_id = req.body.user_id;
+//     const company_id = req.body.company_id;
+//     const service = req.body.service;
+
+//     var query = "SELECT user_id,latitude,longitude,gpx_time,speed,created_at FROM gpx where user_id = "+user_id+" and gpx_time >= '"+start_date+"' and gpx_time <= '"+end_date+"' and company_id ="+company_id+" and service='"+service+"' and accuracy <= 300 ORDER BY gpx_time ASC ALLOW FILTERING;";
+
+
+//     let xx = await getFromDB(query);
+
+//     // res.send(xx);
+
+//     let formated_start_date = new Date(start_date);
+//     let formated_end_date = new Date(end_date);
+//     let results = xx.rows.filter(element => {
+//         // console.log(element.user_id );
+//         return (element.user_id == user_id && element.gpx_time >= formated_start_date && element.gpx_time <= formated_end_date);
+//     });
+//     results = array_values(results);
+//     // res.send(results);
+//     var stall_points = [];
+//     var prev_gpx = results[0];
+//     for(var i = 0; i < results.length; i++)
+//     {
+//         if (
+//             ((results[i]['speed'] * 3.6) <= 1)
+//             && ((Carbon::parse(results[i]['gpx_time'])->diffInMinutes(Carbon::parse(prev_gpx['gpx_time'])) < 5))
+//         ){
+//             array_push(stall_points,results[i]);
+//         }
+//         // $prev_gpx = results[i];
+//         prev_gpx = results[i];
+//     }
+//     //         return $stall_points;
+
+//     res.send({line_string_geo_json:line_string_container,distance:distance});
+
+// });
+
+// public function segmentByStallPoints(array $definition = ['time' => 5, 'speed' => 1])
+//     {
+//         $points = GPX::where('user_id',3035)->orderBy('gpx_time', 'asc')->get()->toArray();
+
+//         $stall_points = [];
+//         $prev_gpx = $points[0];
+//         foreach ($points as $point)
+//         {
+//             if (
+//                 (($point['speed'] * 3.6) <= $definition['speed'])
+//                 and ((Carbon::parse($point['gpx_time'])->diffInMinutes(Carbon::parse($prev_gpx['gpx_time'])) < $definition['time']))
+//             ){
+//                 $stall_points[] = $point;
+//             }
+//             $prev_gpx = $point;
+//         }
+//         return $stall_points;
+//     }
 
 
 function array_values(array) {
