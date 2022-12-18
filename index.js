@@ -386,7 +386,7 @@ app.post('/get-hr-trace-user-statistics', async (req, res) => {
 });
 
 
-async function populateStatisticsRowForHrTrace(checkin_time,gpx_data,name,attendance_data) {
+async function populateStatisticsRowForHrTrace(checkin_time,gpx_data,name,attendance_data,api_key) {
     var ret_data = [];
     var today = new Date(checkin_time);
     ret_data.push({
@@ -407,7 +407,7 @@ async function populateStatisticsRowForHrTrace(checkin_time,gpx_data,name,attend
         }
         var last_data = this_hour_data[this_hour_data.length - 1];
         var address  = '';
-        address = await getRevGeoAddress(last_data.latitude,last_data.longitude);
+        address = await getRevGeoAddress(last_data.latitude,last_data.longitude,api_key);
         if ((typeof(address.place.address) === 'undefined') && (address.place.address === null)) {
             var att_address = address.place.area + " ," + address.place.city + " ," + address.place.sub_district + " ," + address.place.district;
         }else{
@@ -597,9 +597,9 @@ function getFromDB(query) {
     });
 }
 
-function getRevGeoAddress(lat,lon){
+function getRevGeoAddress(lat,lon,api_key){
     return new Promise(function (resolve) {
-        var response = axios.get('https://barikoi.xyz/v1/api/search/reverse/MjA1NDo4MjBSTUxLTEs5/geocode?longitude='+lon+'&latitude='+lat+'&address=true&district=true&sub_district=true')
+        var response = axios.get('https://barikoi.xyz/v1/api/search/reverse/'+api_key+'/geocode?longitude='+lon+'&latitude='+lat+'&address=true&district=true&sub_district=true')
         // console.log(response.get)
         // get response data
         .then(response => {
