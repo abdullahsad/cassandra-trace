@@ -305,38 +305,65 @@ app.post('/get-users-last-gpx-with-status', function(req, res) {
 
 });
 
-app.post('/get-company-user-last-gpx', function(req, res) {
+app.post('/get-company-user-last-gpx', async function(req, res) {
 
     const { company_id, service } = req.body;
 
     if (!(company_id && service)) {
         res.status(400).send("All input is required");
     }else{
-        var q1 = "SELECT DISTINCT user_id FROM gpx;"
-        models.instance.Gpx.execute_query(q1, {}, function(err, data){
-            var users_array = data.rows;
-            // res.send(users_array);
-            var result = users_array.map(function(a) {return a.user_id;});
-            var all_user_Data = [];
-            var query = "SELECT user_id,latitude,longitude,gpx_time,speed,created_at FROM gpx where user_id IN ("+result+") and company_id ="+company_id+" and service='"+service+"' GROUP BY user_id ORDER BY gpx_time DESC ALLOW FILTERING;";
-            models.instance.Gpx.execute_query(query, {}, function(err, data){
-                for(var i=0;i<result.length;i++){
-                    var result2 = data.rows.filter(row => row.user_id == result[i]);
-                    if(result2.length > 0){
-                        all_user_Data.push(
-                            {
-                                user_id: result2[0].user_id,
-                                latitude: result2[0].latitude,
-                                longitude: result2[0].longitude,
-                                gpx_time: result2[0].gpx_time,
-                                speed: result2[0].speed,
-                            }
-                        );
-                    }
+        // var q1 = "SELECT DISTINCT user_id FROM gpx;"
+        // models.instance.Gpx.execute_query(q1, {}, function(err, data){
+        //     var users_array = data.rows;
+        //     // res.send(users_array);
+        //     var result = users_array.map(function(a) {return a.user_id;});
+        //     var all_user_Data = [];
+        //     var query = "SELECT user_id,latitude,longitude,gpx_time,speed,created_at FROM gpx where user_id IN ("+result+") and company_id ="+company_id+" and service='"+service+"' GROUP BY user_id ORDER BY gpx_time DESC ALLOW FILTERING;";
+        //     models.instance.Gpx.execute_query(query, {}, function(err, data){
+        //         for(var i=0;i<result.length;i++){
+        //             var result2 = data.rows.filter(row => row.user_id == result[i]);
+        //             if(result2.length > 0){
+        //                 all_user_Data.push(
+        //                     {
+        //                         user_id: result2[0].user_id,
+        //                         latitude: result2[0].latitude,
+        //                         longitude: result2[0].longitude,
+        //                         gpx_time: result2[0].gpx_time,
+        //                         speed: result2[0].speed,
+        //                     }
+        //                 );
+        //             }
+        //         }
+        //         res.send(all_user_Data);
+        //     });
+        // });
+        if(service == 'HR_TRACE'){
+            var all_user = await getHrTraceUserByCompany(company_id);
+            // res.send(all_user.users[0]);
+            all_user_Data = [];
+            for(var i=0;i<all_user.users.length;i++){
+                var user_id = all_user.users[i].id;
+                var q1 = "SELECT user_id,latitude,longitude,gpx_time,speed,created_at FROM gpx where user_id = "+user_id+" and company_id ="+company_id+" and service='"+service+"' ORDER BY gpx_time DESC LIMIT 1 ALLOW FILTERING;";
+                let xx = await getFromDB(q1);
+                var gpx_data = xx.rows;
+                if (gpx_data.length > 0) {
+                    all_user_Data.push(
+                        {
+                            user_id: gpx_data[0].user_id,
+                            latitude: gpx_data[0].latitude,
+                            longitude: gpx_data[0].longitude,
+                            gpx_time: gpx_data[0].gpx_time,
+                            speed: gpx_data[0].speed,
+                        }
+                    );
                 }
-                res.send(all_user_Data);
-            });
-        });
+            }
+            res.send(all_user_Data);
+        }else{
+            var all_user_Data = [];
+            res.send(all_user_Data);
+        }
+
     }
 
 });
@@ -615,6 +642,18 @@ function getRevGeoAddress(lat,lon,api_key){
 function getHrTraceAttendanceData(user_id,start_date,end_date){
     return new Promise(function (resolve) {
         var response = axios.get('https://hr.bmapsbd.com/api/get-attendance-for-trace?user_id='+user_id+'&start_date='+start_date+'&end_date='+end_date)
+        .then(response => {
+            resolve(response.data);
+        })
+        .catch(error => {
+            console.log(error);
+        });
+    });
+}
+
+function getHrTraceUserByCompany(company_id){
+    return new Promise(function (resolve) {
+        var response = axios.get('https://hr.bmapsbd.com/api/get-user-by-company-id?company_id='+company_id)
         .then(response => {
             resolve(response.data);
         })
