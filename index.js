@@ -206,6 +206,13 @@ app.post('/add-gpx', function(req, res) {
     gpx.save(function(err){
         if(err) {
             console.log(err);
+            res.send(err);
+        }else{
+            pusher.trigger("user-gpx", "gpx-"+gpx.service+"-company-"+gpx.company_id, {
+                message: gpx,
+            });
+    
+            res.send(gpx);  
         }
         // const client = new Tile38();
         // client.set(service+'_company_'+company_id+'_gpx', service+'_company_'+company_id+'_user_'+user_id, [latitude, longitude]).then(() => {
@@ -214,11 +221,7 @@ app.post('/add-gpx', function(req, res) {
         //     console.error(err);
         // });
 
-        pusher.trigger("user-gpx", "gpx-"+gpx.service+"-company-"+gpx.company_id, {
-            message: gpx,
-        });
-
-        res.send(gpx);   
+         
     });
 
 
