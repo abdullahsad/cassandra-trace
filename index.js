@@ -190,9 +190,9 @@ app.post('/add-gpx', function(req, res) {
     // }
     //check if any value is null
     if (user_id == null || longitude == null || latitude == null || speed == null || bearing == null || altitude == null || gpx_time == null || is_offline_data == null || accuracy == null || company_id == null || service == null) {
-        res.status(400).send("All input is required");
+        res.send("All input is required");
     }
-    
+
     var gpx = new models.instance.Gpx({
         user_id: parseInt(user_id),
         longitude:parseFloat( longitude),
