@@ -192,7 +192,7 @@ app.post('/add-gpx', function(req, res) {
 
 
     if (user_id == null || longitude == null || latitude == null || speed == null || bearing == null || altitude == null || gpx_time == null || is_offline_data == null || accuracy == null || company_id == null || service == null || user_id == '' || longitude == '' || latitude == '' || speed == '' || bearing == '' || altitude == '' || gpx_time == '' || is_offline_data == '' || accuracy == '' || company_id == '' || service == '') {
-        console.log("inside if", user_id);
+        console.log("inside if "+user_id, req.body);
         res.send("All input is required");
     }else{
         var gpx = new models.instance.Gpx({
