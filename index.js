@@ -10,7 +10,7 @@ var morgan = require('morgan');
 var fs = require('fs');
 var logFile = 'output.log';
 var forms = multer();
-const Tile38 = require('tile38');
+// const Tile38 = require('tile38');
 const { Server } = require("socket.io");
 var app = express();
 app.use(cors());
@@ -207,12 +207,12 @@ app.post('/add-gpx', function(req, res) {
         if(err) {
             console.log(err);
         }
-        const client = new Tile38();
-        client.set(service+'_company_'+company_id+'_gpx', service+'_company_'+company_id+'_user_'+user_id, [latitude, longitude]).then(() => {
-            console.log("done");
-        }).catch(err => {
-            console.error(err);
-        });
+        // const client = new Tile38();
+        // client.set(service+'_company_'+company_id+'_gpx', service+'_company_'+company_id+'_user_'+user_id, [latitude, longitude]).then(() => {
+        //     console.log("done");
+        // }).catch(err => {
+        //     console.error(err);
+        // });
 
         pusher.trigger("user-gpx", "gpx-"+gpx.service+"-company-"+gpx.company_id, {
             message: gpx,
