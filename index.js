@@ -191,43 +191,45 @@ app.post('/add-gpx', function(req, res) {
     //check if any value is null
     if (user_id == null || longitude == null || latitude == null || speed == null || bearing == null || altitude == null || gpx_time == null || is_offline_data == null || accuracy == null || company_id == null || service == null) {
         res.send("All input is required");
+    }else{
+        var gpx = new models.instance.Gpx({
+            user_id: parseInt(user_id),
+            longitude:parseFloat( longitude),
+            latitude:parseFloat( latitude),
+            speed:parseFloat( speed),
+            bearing:parseFloat( bearing),
+            created_at: Date.now(),
+            updated_at: Date.now(),
+            altitude: parseFloat(altitude),
+            gpx_time: new Date(gpx_time),
+            is_offline_data: 0,
+            accuracy: parseFloat(accuracy),
+            company_id:parseInt (company_id),
+            service: service
+        });
+        gpx.save(function(err){
+            if(err) {
+                console.log(err);
+                res.send(err);
+            }else{
+                pusher.trigger("user-gpx", "gpx-"+gpx.service+"-company-"+gpx.company_id, {
+                    message: gpx,
+                });
+        
+                res.send(gpx);  
+            }
+            // const client = new Tile38();
+            // client.set(service+'_company_'+company_id+'_gpx', service+'_company_'+company_id+'_user_'+user_id, [latitude, longitude]).then(() => {
+            //     console.log("done");
+            // }).catch(err => {
+            //     console.error(err);
+            // });
+    
+             
+        });
     }
 
-    var gpx = new models.instance.Gpx({
-        user_id: parseInt(user_id),
-        longitude:parseFloat( longitude),
-        latitude:parseFloat( latitude),
-        speed:parseFloat( speed),
-        bearing:parseFloat( bearing),
-        created_at: Date.now(),
-        updated_at: Date.now(),
-        altitude: parseFloat(altitude),
-        gpx_time: new Date(gpx_time),
-        is_offline_data: 0,
-        accuracy: parseFloat(accuracy),
-        company_id:parseInt (company_id),
-        service: service
-    });
-    gpx.save(function(err){
-        if(err) {
-            console.log(err);
-            res.send(err);
-        }else{
-            pusher.trigger("user-gpx", "gpx-"+gpx.service+"-company-"+gpx.company_id, {
-                message: gpx,
-            });
     
-            res.send(gpx);  
-        }
-        // const client = new Tile38();
-        // client.set(service+'_company_'+company_id+'_gpx', service+'_company_'+company_id+'_user_'+user_id, [latitude, longitude]).then(() => {
-        //     console.log("done");
-        // }).catch(err => {
-        //     console.error(err);
-        // });
-
-         
-    });
 
 
 });
