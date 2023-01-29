@@ -209,15 +209,16 @@ app.post('/add-gpx', function(req, res) {
             company_id:parseInt (company_id),
             service: service
         });
+        console.log("inside else");
         gpx.save(function(err){
             if(err) {
                 console.log(err);
                 res.send(err);
             }else{
+                console.log("inside else else");
                 pusher.trigger("user-gpx", "gpx-"+gpx.service+"-company-"+gpx.company_id, {
                     message: gpx,
                 });
-        
                 res.send(gpx);  
             }
             // const client = new Tile38();
