@@ -215,7 +215,7 @@ app.post('/add-gpx', function(req, res) {
                 console.log(err);
                 res.send(err);
             }else{
-                console.log("inside else else");
+                console.log("inside else else", user_id);
                 pusher.trigger("user-gpx", "gpx-"+gpx.service+"-company-"+gpx.company_id, {
                     message: gpx,
                 });
